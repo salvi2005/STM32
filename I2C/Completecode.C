@@ -21,14 +21,11 @@ void I2C1_Init(void)
     // CR2 register me peripheral clock frequency set karte hain
     // APB1 clock = 36MHz
     I2C1->CR2 = 36;
-
     // I2C clock speed set karna
     // 100kHz standard mode
     I2C1->CCR = 180;
-
     // Rise time configure
     I2C1->TRISE = 37;
-
     // I2C enable
     I2C1->CR1 |= (1<<0);
 }
