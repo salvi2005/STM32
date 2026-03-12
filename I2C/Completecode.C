@@ -104,13 +104,9 @@ void I2C_Stop(void)
 void I2C_WriteRegister(uint8_t deviceAddr, uint8_t reg, uint8_t data)
 {
     I2C_Start();               // Communication start
-
     I2C_Address(deviceAddr);   // Device address send
-
     I2C_Write(reg);            // Register address send
-
     I2C_Write(data);           // Data write
-
     I2C_Stop();                // Communication stop
 }
 
