@@ -1,14 +1,17 @@
-# STM32 UART Communication (Register Level) 🚀
+# STM32 UART Communication (Register-Level Implementation) 🚀
 
-This project demonstrates **UART communication using STM32F103 microcontroller** with **register-level programming**.
-The goal of this repository is to clearly explain:
+This repository demonstrates **UART communication using STM32F103 microcontroller with register-level programming**.
+The goal of this project is to understand **how UART works internally without using HAL libraries**.
 
-* UART initialization
-* Serial debugging
-* Polling-based UART communication
-* Sending and receiving data
+This README explains:
 
-This project is useful for **embedded systems beginners** and those learning **bare-metal STM32 programming**.
+• UART fundamentals
+• UART data frame
+• UART registers
+• Polling communication
+• Interrupt-based communication
+• Serial debugging
+• UART error handling
 
 ---
 
@@ -16,242 +19,391 @@ This project is useful for **embedded systems beginners** and those learning **b
 
 UART stands for **Universal Asynchronous Receiver Transmitter**.
 
-It is a **serial communication protocol** used to exchange data between devices.
+It is a **serial communication protocol** used for data transfer between devices.
 
 Examples:
 
 * Microcontroller ↔ Computer
-* Microcontroller ↔ Sensor
-* Microcontroller ↔ WiFi module
 * Microcontroller ↔ GPS module
+* Microcontroller ↔ WiFi module
+* Microcontroller ↔ Telemetry system
 
-UART communication requires **two lines**:
+UART is **asynchronous**, meaning it does not require a shared clock.
 
-| Line | Purpose       |
+---
+
+# 2. UART Communication Lines
+
+![Image](https://datacapturecontrol.com/articles/static/images/data-communication/wired/uart/intro/uart-intro-title-image.svg)
+
+![Image](https://images.theengineeringprojects.com/image/main/2021/11/1-7.jpg)
+
+![Image](https://europe1.discourse-cdn.com/arduino/original/4X/a/b/d/abd25471e12519a7b076948635639e21328b6391.png)
+
+![Image](https://community.nxp.com/t5/image/serverpage/image-id/318724i706640F5CB31A35C/image-size/large?px=999\&v=v2)
+
+UART requires **two main lines**:
+
+| Line | Function      |
 | ---- | ------------- |
 | TX   | Transmit data |
 | RX   | Receive data  |
+
+Connection example:
+
+```id="c9qg2k"
+STM32 TX → PC RX
+STM32 RX → PC TX
+GND → GND
+```
 
 For STM32F103:
 
 | Pin  | Function |
 | ---- | -------- |
-| PA9  | UART TX  |
-| PA10 | UART RX  |
-
-Connection example:
-
-STM32 TX → USB-TTL RX
-STM32 RX → USB-TTL TX
-GND → GND
+| PA9  | TX       |
+| PA10 | RX       |
 
 ---
 
-# 2. UART Data Frame
+# 3. UART Data Frame
 
-UART sends data in the form of a **frame**.
+![Image](https://www.researchgate.net/publication/340062601/figure/fig24/AS%3A871193624191015%401584720154984/UART-Data-Structure-The-start-bit-is-logical-LOW-and-the-stop-bit-is-logical-HIGH-These.ppm)
+
+![Image](https://www.researchgate.net/publication/4253336/figure/fig1/AS%3A668966062153730%401536505346066/N1-Data-Transmission.png)
+
+![Image](https://vanhunteradams.com/Protocols/UART/uart_timing.png)
+
+![Image](https://developer.electricimp.com/sites/default/files/attachments/images/uart/uart3.png)
+
+UART transmits data in frames.
 
 Frame structure:
 
-START BIT → DATA BITS → STOP BIT
+```id="px6xov"
+START | DATA BITS | PARITY | STOP
+```
 
-Common configuration:
+Most common format:
 
+```id="8kb9df"
 8N1
+```
 
 Meaning:
 
-8 data bits
-No parity
-1 stop bit
+| Parameter | Value |
+| --------- | ----- |
+| Data bits | 8     |
+| Parity    | None  |
+| Stop bit  | 1     |
 
 ---
 
-# 3. Baud Rate
+# 4. Baud Rate
 
-Baud rate defines the **communication speed**.
+Baud rate determines **communication speed**.
 
-Example baud rates:
+Examples:
 
-* 9600
-* 57600
-* 115200
+| Baud Rate |
+| --------- |
+| 9600      |
+| 57600     |
+| 115200    |
 
-In this project:
+Common debugging speed:
 
-Baud rate = **115200**
-
----
-
-# 4. Important UART Registers
-
-The following registers are used in this project:
-
-| Register | Purpose            |
-| -------- | ------------------ |
-| SR       | Status Register    |
-| DR       | Data Register      |
-| BRR      | Baud Rate Register |
-| CR1      | Control Register   |
-
-Important bits:
-
-TXE → Transmit data register empty
-RXNE → Receive data register not empty
-
----
-
-# 5. UART Initialization
-
-The UART initialization function performs these steps:
-
-1. Enable clock for USART1
-2. Enable clock for GPIOA
-3. Configure TX pin (PA9)
-4. Configure RX pin (PA10)
-5. Set baud rate
-6. Enable transmitter and receiver
-
-Example initialization:
-
-```c
-void UART1_Config(void)
+```id="crtn27"
+115200 baud
 ```
 
-This prepares the microcontroller for UART communication.
+Baud rate formula:
 
----
-
-# 6. Serial Debugging
-
-Serial debugging is a very common technique used in **embedded systems development**.
-
-Instead of using complex debugging tools, developers send **debug messages through UART**.
-
-Example debug messages:
-
+```id="m9tq4b"
+USARTDIV = Fclk / (16 × BaudRate)
 ```
-System Booted
-Sensor Init OK
-Main Loop Running
-```
-
-These messages appear in a **serial terminal** such as:
-
-* PuTTY
-* TeraTerm
-* Arduino Serial Monitor
-
-This helps developers understand:
-
-* Whether the program started correctly
-* If sensors initialized successfully
-* Where an error occurs
-
----
-
-# 7. Polling Concept
-
-Polling means the **CPU continuously checks a status flag**.
 
 Example:
 
-```
-while(!(USART1->SR & (1<<7)));
+```id="th8j1b"
+72MHz / (16 × 115200)
 ```
 
-Explanation:
+Result:
 
-The CPU repeatedly checks the **TXE flag** until the transmit buffer becomes empty.
+```id="ytn3bt"
+BRR = 0x271
+```
+
+---
+
+# 5. Important UART Registers
+
+| Register | Purpose            |
+| -------- | ------------------ |
+| SR       | Status register    |
+| DR       | Data register      |
+| BRR      | Baud rate register |
+| CR1      | Control register   |
+
+---
+
+# 6. Important UART Status Flags
+
+UART communication uses **status flags**.
+
+| Flag | Meaning                  |
+| ---- | ------------------------ |
+| TXE  | Transmit buffer empty    |
+| RXNE | Receive buffer not empty |
+| TC   | Transmission complete    |
+
+Examples:
+
+TXE flag:
+
+```id="qglv1o"
+Transmit register empty
+```
+
+RXNE flag:
+
+```id="g9j8od"
+Data received
+```
+
+---
+
+# 7. UART Initialization (Register Level)
+
+Steps performed during initialization:
+
+1. Enable peripheral clocks
+2. Configure TX and RX pins
+3. Set baud rate
+4. Enable transmitter and receiver
+
+Example configuration steps:
+
+```id="1v29j1"
+Enable USART1 clock
+Enable GPIOA clock
+Configure PA9 TX
+Configure PA10 RX
+Set BRR
+Enable UART
+```
+
+---
+
+# 8. UART Polling Communication
+
+![Image](https://user-images.githubusercontent.com/62213019/114440221-baf90a80-9b7e-11eb-8a0e-417cfbf72be0.png)
+
+![Image](https://www.xanthium.in/sites/default/files/inline-images/8051-uart-baudrate-configuration-clock.jpg)
+
+![Image](https://www.allelcoelec.com/upfile/images/bd/20250105123408522.png)
+
+![Image](https://www.analog.com/en/_/media/images/analog-dialogue/en/volume-54/number-4/articles/uart-a-hardware-communication-protocol/335962-fig-02.svg?la=en\&rev=7d55981f85ba4f1fb8f2c41635303994)
+
+Polling means:
+
+```id="3db6pg"
+CPU continuously checks status flags
+```
+
+Example:
+
+```id="y9o8h5"
+while(!(USART1->SR & TXE))
+```
 
 Flow:
 
-CPU checks flag → flag not ready → wait → check again → send data.
-
-Polling is simple but **not efficient for large systems**, because the CPU stays busy checking the flag.
+```id="3v6l2f"
+Check TXE
+↓
+Wait until empty
+↓
+Write data
+```
 
 ---
 
-# 8. Sending Data using UART
+# 9. Sending Data (Transmit)
 
-To send a character:
+Character transmit flow:
 
-```
-UART1_SendChar('A');
-```
-
-The function waits until the TX buffer becomes empty and then places the data into the **Data Register (DR)**.
-
----
-
-# 9. Sending Strings
-
-To send a complete message:
-
-```
-UART1_SendString("Hello World");
+```id="n6qv0o"
+Check TXE flag
+↓
+Write data to DR register
+↓
+Hardware sends serial data
 ```
 
-The function sends characters **one by one** using the UART transmit function.
+Example concept:
+
+```id="6g3j0e"
+DR = 'A'
+```
+
+UART converts it to serial bits.
 
 ---
 
 # 10. Receiving Data
 
-UART can also receive data from the serial terminal.
+Receive flow:
 
-Example receive function:
-
-```
-char data = UART1_ReceiveChar();
-```
-
-The function waits until **RXNE flag becomes 1**, indicating new data has arrived.
-
----
-
-# 11. Example Output
-
-If the user types:
-
-```
-A
+```id="9e4d6n"
+Wait for RXNE flag
+↓
+Read DR register
 ```
 
-The program responds:
+Example:
 
-```
-You Typed: A
+```id="n27l2t"
+char data = USART1->DR
 ```
 
 ---
 
-# 12. Why This Project is Important
+# 11. UART Interrupt Mode
 
-This project helps understand:
+![Image](https://repository-images.githubusercontent.com/564580457/c8b3ebe8-7feb-4db6-a3c7-1fe8278c324b)
 
-* Bare-metal register programming
-* UART communication fundamentals
-* Debugging embedded systems
-* Polling-based communication
+![Image](https://cdn.sparkfun.com/assets/e/9/7/5/4/50d24680ce395f7172000000.png)
 
-These concepts are widely used in **embedded firmware development**.
+![Image](https://users.ece.utexas.edu/~valvano/Volume1/E-Book/C12_Interrupts_files/c12-image001.png)
+
+![Image](https://miro.medium.com/v2/resize%3Afit%3A1200/1%2ARNBYkQ193P2tODrXv82Lcw.png)
+
+Interrupt mode removes the need for polling.
+
+Flow:
+
+```id="7x4t12"
+Data received
+↓
+RXNE flag set
+↓
+Interrupt triggered
+↓
+ISR executed
+```
+
+Interrupt enable:
+
+```id="3k0exv"
+USART1->CR1 |= RXNEIE
+```
+
+ISR example:
+
+```id="ah4cv2"
+USART1_IRQHandler()
+```
 
 ---
 
-# 13. Future Improvements
+# 12. Serial Debugging
 
-Possible upgrades to this project:
+Serial debugging is widely used in embedded systems.
 
-* UART interrupt mode
-* DMA based communication
-* printf redirection
-* sensor data logging
-* telemetry systems for drones
+Example debug messages:
+
+```id="3o1pqu"
+System Boot
+Sensor Init OK
+Main Loop Running
+```
+
+Tools used:
+
+* PuTTY
+* TeraTerm
+* Arduino Serial Monitor
+
+Debugging helps track program execution.
 
 ---
 
-# 14. Author
+# 13. UART Error Handling
+
+![Image](https://community.st.com/t5/image/serverpage/image-id/64214i35C4C6F96DE71486?v=v2)
+
+![Image](https://europe1.discourse-cdn.com/arduino/original/4X/0/2/c/02c482a50375a67e6a5f4ad5e6f7394aa56da793.png)
+
+![Image](https://forums.ghielectronics.com/uploads/db3298/original/2X/b/bb0c4ef9e3906991a4c53a53196874c435ac6c55.jpeg)
+
+![Image](https://community.st.com/t5/image/serverpage/image-id/83499iD51C7729575C9FB1?v=v2)
+
+UART hardware can detect communication errors.
+
+Important error flags:
+
+| Error | Meaning       |
+| ----- | ------------- |
+| ORE   | Overrun error |
+| NE    | Noise error   |
+| FE    | Framing error |
+
+Examples:
+
+Overrun Error:
+
+```id="34cwcc"
+New data arrives before previous data is read
+```
+
+Noise Error:
+
+```id="civqk8"
+Electrical interference corrupts data
+```
+
+Framing Error:
+
+```id="d2z0v5"
+Incorrect baud rate causes invalid frame detection
+```
+
+---
+
+# 14. Applications of UART
+
+UART is widely used in embedded systems.
+
+Examples:
+
+| Device           | Use                     |
+| ---------------- | ----------------------- |
+| GPS module       | Navigation              |
+| Bluetooth module | Wireless communication  |
+| Telemetry system | Drone data transmission |
+| Debug console    | Firmware debugging      |
+
+---
+
+# 15. Summary
+
+This project demonstrates:
+
+* Register-level UART programming
+* Polling communication
+* Interrupt-driven communication
+* Serial debugging techniques
+* Error detection in UART
+
+These concepts are fundamental for **embedded firmware development**.
+
+---
+
+# Author
 
 Salvi Kashyap
-Embedded Systems Enthusiast
+Embedded Systems Learner | STM32 Firmware Development
+
