@@ -1,18 +1,7 @@
 #include "stm32f10x.h"
 
 /*
-============================================
-PIN CONFIGURATION
-============================================
-
-PA5 -> SCK
-PA7 -> MOSI
-PA4 -> CS
-PA3 -> DC
-PA2 -> RESET
-
-
-full folw of code
+FULL FLOW:
 SPI Init
 ↓
 OLED Reset
@@ -22,6 +11,26 @@ OLED Init commands
 Clear display
 ↓
 Send pixel data
+
+CODE STUCTURE: SPI1_Init()
+SPI_Send()
+
+OLED_Command()
+OLED_Data()
+
+OLED_Init()
+OLED_Clear()
+
+START CODE:
+============================================
+PIN CONFIGURATION
+============================================
+
+PA5 -> SCK
+PA7 -> MOSI
+PA4 -> CS
+PA3 -> DC
+PA2 -> RESET
 
 */
 
