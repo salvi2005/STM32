@@ -11,6 +11,18 @@ PA4 -> CS
 PA3 -> DC
 PA2 -> RESET
 
+
+full folw of code
+SPI Init
+↓
+OLED Reset
+↓
+OLED Init commands
+↓
+Clear display
+↓
+Send pixel data
+
 */
 
 void delay()
